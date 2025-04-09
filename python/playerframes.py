@@ -83,7 +83,10 @@ def getTotalFrames(video_index, zoom) :
 def loadActionFrames(path) :
     frames = []
     for imgname in listdir(path) :
-        frames.append(pygame.image.load(path+'/'+imgname))
+        frame = pygame.image.load(path+'/'+imgname)
+        frame = pygame.transform.rotate(frame, 90)
+        frame = pygame.transform.scale_by(frame, SCREEN_HEIGHT / 1080 )
+        frames.append(frame)
     return frames
 
 
@@ -138,6 +141,8 @@ def nextVideo():
     show_overlay = False
     cur_total_frames = getTotalFrames(cur_video_index, cur_zoom)
     info_overlay = getVideoInfoSurface(cur_video_index)
+    info_overlay = pygame.transform.rotate(info_overlay, 90)
+    info_overlay = pygame.transform.scale_by(info_overlay, SCREEN_HEIGHT / 1080 )
     time_to_next_video = AUTO_NEXT_VIDEO_SECONDS
 
     
@@ -152,6 +157,8 @@ def prevVideo():
     show_overlay = False
     cur_total_frames = getTotalFrames(cur_video_index, cur_zoom)
     info_overlay = getVideoInfoSurface(cur_video_index)
+    info_overlay = pygame.transform.rotate(info_overlay, 90)
+    info_overlay = pygame.transform.scale_by(info_overlay, SCREEN_HEIGHT / 1080 )
     time_to_next_video = AUTO_NEXT_VIDEO_SECONDS
 
 
@@ -163,15 +170,9 @@ has_user_used_encoder = False
 show_action_rotate = False
 show_actions_other = False
 
-show_overlay = False
-rotation = 0
-rotation_speed = 0
-direction = 1
-cur_video_index = 0
-cur_frame_index = 0
-cur_zoom = False
-info_overlay = getVideoInfoSurface(cur_video_index)
-cur_total_frames = getTotalFrames(cur_video_index, cur_zoom)
+cur_video_index = -1;
+nextVideo();
+
 
 frame = loadFrame(cur_frame_index, cur_video_index, cur_zoom)
 
@@ -190,15 +191,15 @@ while True:
     # Set frame ticks
     current_time = time.time()
     delta_time = current_time - prev_time
-    total_time += delta_time
-    idle_time += delta_time
-    time_to_next_video -= delta_time
-
+    
     # Limit FPS
-    if ((1 / FPS) > delta_time) :   
+    if ((1 / FPS) < delta_time) :    
+        total_time += delta_time
+        time_to_next_video -= delta_time
+        idle_time += delta_time
+
         # Calc rotation
         if current_time - last_encoder_time > ENCODER_PAUSE_SECONDS :
-            # rotation_speed = min(rotation_speed + ROTATION_ACCEL * delta_time, ROTATION_SPEED)
             rotation_speed = ROTATION_SPEED
             rotation += rotation_speed * delta_time
 
@@ -206,14 +207,14 @@ while True:
         cur_frame_index = int(((rotation / 360) * cur_total_frames) % cur_total_frames)
 
         # Needs to load new frame?
-        if prev_frame_index != cur_frame_index or prev_video_index != cur_video_index or prev_zoom != cur_zoom :        
+        if prev_frame_index != cur_frame_index or prev_video_index != cur_video_index or prev_zoom != cur_zoom :
             frame = loadFrame(cur_video_index, cur_frame_index, cur_zoom)
+            frame = pygame.transform.rotate(frame, 90)
+            frame = pygame.transform.scale(frame, (SCREEN_WIDTH, SCREEN_HEIGHT))
             
         # Render frame
         windowSurface.fill((0, 0, 0))
-        transformed_frame = pygame.transform.rotate(frame, 90)
-        transformed_frame = pygame.transform.scale(transformed_frame, (SCREEN_WIDTH, SCREEN_HEIGHT))
-        windowSurface.blit(transformed_frame, transformed_frame.get_rect())
+        windowSurface.blit(frame, frame.get_rect())
 
         # Actions
         if not show_action_rotate and not show_actions_other and idle_time > ACTION_ROTATE_SEC :
@@ -228,39 +229,31 @@ while True:
 
         # Render overlay
         if show_overlay and info_overlay :
-            transformed_info_overlay = pygame.transform.rotate(info_overlay, 90)
-            transformed_info_overlay = pygame.transform.scale_by(transformed_info_overlay, SCREEN_HEIGHT / 1080 )
             info_overlay_position_x = SCREEN_WIDTH * INFO_OVERLAY_SCREEN_POSITION
-            info_overlay_position_y = (SCREEN_HEIGHT - transformed_info_overlay.get_rect().height) / 2
-            windowSurface.blit(transformed_info_overlay, (info_overlay_position_x, info_overlay_position_y))
+            info_overlay_position_y = (SCREEN_HEIGHT - info_overlay.get_rect().height) / 2
+            windowSurface.blit(info_overlay, (info_overlay_position_x, info_overlay_position_y))
 
         # Render zoom action
         if show_actions_other :
             action_zoom_anim = int ( total_time * ACTION_ZOOM_FPS % len(action_zoom_frames))
             action_zoom_frame = action_zoom_frames[action_zoom_anim]
-            transformed_action_zoom_frame = pygame.transform.rotate(action_zoom_frame, 90)
-            transformed_action_zoom_frame = pygame.transform.scale_by(transformed_action_zoom_frame, SCREEN_HEIGHT / 1080 )
-            action_zoom_position_x = SCREEN_WIDTH * 0.88  - transformed_action_zoom_frame.get_rect().width
-            action_zoom_position_y = SCREEN_HEIGHT - transformed_action_zoom_frame.get_rect().height - SCREEN_HEIGHT * 0.1
-            windowSurface.blit(transformed_action_zoom_frame, (action_zoom_position_x, action_zoom_position_y))
+            action_zoom_position_x = SCREEN_WIDTH * 0.88  - action_zoom_frame.get_rect().width
+            action_zoom_position_y = SCREEN_HEIGHT - action_zoom_frame.get_rect().height - SCREEN_HEIGHT * 0.1
+            windowSurface.blit(action_zoom_frame, (action_zoom_position_x, action_zoom_position_y))
 
             action_info_anim = int ( total_time * ACTION_INFO_FPS % len(action_info_frames))
             action_info_frame = action_info_frames[action_info_anim]
-            transformed_action_info_frame = pygame.transform.rotate(action_info_frame, 90)
-            transformed_action_info_frame = pygame.transform.scale_by(transformed_action_info_frame, SCREEN_HEIGHT / 1080 )
-            action_info_position_x = SCREEN_WIDTH * 0.88  - transformed_action_info_frame.get_rect().width
+            action_info_position_x = SCREEN_WIDTH * 0.88  - action_info_frame.get_rect().width
             action_info_position_y = SCREEN_HEIGHT * 0.1
-            windowSurface.blit(transformed_action_info_frame, (action_info_position_x, action_info_position_y))
+            windowSurface.blit(action_info_frame, (action_info_position_x, action_info_position_y))
 
         # Render rotate action
         if show_action_rotate :
             action_rotate_anim = int ( total_time * ACTION_ROTATE_FPS % len(action_rotate_frames))
             action_rotate_frame = action_rotate_frames[action_rotate_anim]
-            transformed_action_rotate_frame = pygame.transform.rotate(action_rotate_frame, 90)
-            transformed_action_rotate_frame = pygame.transform.scale_by(transformed_action_rotate_frame, SCREEN_HEIGHT / 1080 )
-            action_rotate_position_x = SCREEN_WIDTH / 2  - transformed_action_rotate_frame.get_rect().width / 2
-            action_rotate_position_y = SCREEN_HEIGHT / 2  - transformed_action_rotate_frame.get_rect().height / 2
-            windowSurface.blit(transformed_action_rotate_frame, (action_rotate_position_x, action_rotate_position_y))
+            action_rotate_position_x = SCREEN_WIDTH / 2  - action_rotate_frame.get_rect().width / 2
+            action_rotate_position_y = SCREEN_HEIGHT / 2  - action_rotate_frame.get_rect().height / 2
+            windowSurface.blit(action_rotate_frame, (action_rotate_position_x, action_rotate_position_y))
 
         pygame.display.flip()    
 
@@ -312,4 +305,4 @@ while True:
         if time_to_next_video < 0 :
             nextVideo()
                 
-    prev_time = current_time    
+        prev_time = current_time    
