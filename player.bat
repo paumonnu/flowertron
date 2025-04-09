@@ -1,1 +1,2 @@
-py ./python/playerframes.py 
+cd python
+py ./playerframes.py 
