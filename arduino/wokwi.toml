@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = './flowertron/build/arduino.avr.uno/flowertron.ino.hex'
+elf = './flowertron/build/arduino.avr.uno/flowertron.ino.elf'
