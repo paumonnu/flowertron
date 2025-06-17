@@ -71,7 +71,7 @@ void loop() {
     }
 
     if (pin5 != prevPin5 && pin5 == HIGH) {
-      Serial.println("Z");
+      Serial.println("Z"); 
     }
 
     if (pin7 != prevPin7 && pin7 == HIGH) {
